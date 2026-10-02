@@ -1,1 +1,763 @@
 
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HipotecaSimulator</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#1a365d;--primary-light:#2b6cb0;--accent:#3182ce;--accent-hover:#2c5282;
+  --success:#276749;--success-bg:#c6f6d5;--warning:#c05621;--warning-bg:#feebc8;
+  --danger:#c53030;--danger-bg:#fed7d7;
+  --bg:#edf2f7;--bg-card:#fff;--bg-header:linear-gradient(135deg,#1a365d 0%,#2b6cb0 100%);
+  --text:#1a202c;--text-secondary:#718096;--text-light:#a0aec0;
+  --border:#e2e8f0;--border-focus:#3182ce;
+  --shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
+  --radius:8px;--radius-lg:12px;
+  --transition:all .2s ease;
+}
+html{font-size:14px}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--text);background:var(--bg);line-height:1.5}
+input[type=number],input[type=text],input[type=month],select{
+  width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);
+  font-size:.9rem;transition:var(--transition);background:#fff;color:var(--text);
+}
+input:focus,select:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(49,130,206,.15)}
+button{cursor:pointer;font-family:inherit;font-size:.875rem;border:none;border-radius:var(--radius);padding:8px 16px;transition:var(--transition)}
+.app{display:flex;flex-direction:column;min-height:100vh}
+header{background:var(--bg-header);color:#fff;padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-md)}
+header h1{font-size:1.4rem;font-weight:700;letter-spacing:-.5px}
+header .subtitle{font-size:.8rem;opacity:.75;margin-left:auto}
+.main{display:grid;grid-template-columns:340px 1fr;gap:24px;padding:24px;max-width:1600px;margin:0 auto;width:100%}
+.sidebar{display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--bg-card);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)}
+.panel h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--bg)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px}
+.input-suffix{display:flex;align-items:center;gap:6px}
+.input-suffix span{font-size:.85rem;color:var(--text-secondary);white-space:nowrap;min-width:20px}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bonif-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.bonif-item{display:grid;grid-template-columns:auto 1fr 70px auto;gap:6px;align-items:center;padding:6px 8px;background:var(--bg);border-radius:var(--radius);font-size:.85rem}
+.bonif-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+.bonif-item input[type=text]{padding:4px 6px;font-size:.85rem}
+.bonif-item input[type=number]{padding:4px 6px;font-size:.85rem;text-align:right}
+.bonif-item .bonif-del{background:none;padding:2px 6px;color:var(--danger);font-size:1rem;line-height:1}
+.bonif-item .bonif-del:hover{background:var(--danger-bg);border-radius:4px}
+.btn-add-bonif{background:none;color:var(--accent);font-size:.8rem;padding:4px 0;text-align:left}
+.btn-add-bonif:hover{text-decoration:underline}
+.effective-rate{margin-top:10px;padding:10px;background:linear-gradient(135deg,#ebf8ff,#e6fffa);border-radius:var(--radius);font-weight:600;text-align:center;font-size:1.05rem;color:var(--primary)}
+.effective-rate small{display:block;font-size:.7rem;font-weight:400;color:var(--text-secondary);margin-bottom:2px}
+.btn-calculate{width:100%;padding:12px;background:var(--accent);color:#fff;font-size:1rem;font-weight:600;border-radius:var(--radius);letter-spacing:.3px}
+.btn-calculate:hover{background:var(--accent-hover);box-shadow:var(--shadow-md)}
+.btn-calculate:active{transform:scale(.98)}
+.content{display:flex;flex-direction:column;gap:16px;min-width:0}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.card{background:var(--bg-card);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow);text-align:center}
+.card .card-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:4px}
+.card .card-value{font-size:1.5rem;font-weight:700;color:var(--primary)}
+.card .card-sub{font-size:.75rem;color:var(--text-light);margin-top:2px}
+.card.highlight{border-left:4px solid var(--accent)}
+.rate-breakdown{background:var(--bg-card);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);font-size:.85rem;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.rate-tag{padding:3px 8px;border-radius:12px;font-size:.75rem;font-weight:600}
+.rate-tag.base{background:#ebf8ff;color:#2b6cb0}
+.rate-tag.bonif{background:var(--success-bg);color:var(--success)}
+.rate-tag.effective{background:var(--primary);color:#fff}
+.prepay-summary{background:var(--bg-card);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow)}
+.prepay-summary h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-secondary);margin-bottom:10px}
+.prepay-list{display:flex;flex-direction:column;gap:6px}
+.prepay-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:var(--radius);font-size:.85rem;border-left:3px solid var(--accent)}
+.prepay-item .prepay-info{display:flex;flex-direction:column;gap:2px}
+.prepay-item .prepay-info .prepay-detail{font-size:.75rem;color:var(--text-secondary)}
+.prepay-item .prepay-actions{display:flex;gap:4px}
+.prepay-item .prepay-actions button{padding:4px 8px;font-size:.75rem;border-radius:4px}
+.btn-edit{background:#ebf8ff;color:var(--accent)}
+.btn-delete{background:var(--danger-bg);color:var(--danger)}
+.no-results{text-align:center;padding:60px 20px;color:var(--text-secondary)}
+.no-results .icon{font-size:3rem;margin-bottom:12px;opacity:.5}
+.no-results p{font-size:.95rem}
+.table-wrapper{background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow-x:auto}
+.table-wrapper table{width:100%;border-collapse:collapse;font-size:.85rem}
+.table-wrapper thead{position:sticky;top:0;z-index:2}
+.table-wrapper th{background:var(--primary);color:#fff;padding:10px 12px;text-align:right;font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.table-wrapper th:first-child,.table-wrapper td:first-child{text-align:center}
+.table-wrapper td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+.table-wrapper tbody tr:hover{background:#f7fafc}
+.table-wrapper tbody tr.has-prepay{background:#ebf8ff}
+.table-wrapper tbody tr.has-prepay:hover{background:#d6ecff}
+.table-wrapper tbody tr.year-start{border-top:2px solid var(--border)}
+.table-wrapper .savings-row td{padding:4px 12px;font-size:.78rem;background:var(--success-bg);color:var(--success);border-bottom:1px solid #9ae6b4}
+.table-wrapper .savings-row td .savings-text{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.btn-amort{background:var(--accent);color:#fff;padding:3px 8px;font-size:.75rem;border-radius:4px;white-space:nowrap}
+.btn-amort:hover{background:var(--accent-hover)}
+.btn-amort.has{background:var(--success)}
+.progress-cell{position:relative}
+.progress-bar{position:absolute;left:0;top:0;bottom:0;background:rgba(49,130,206,.08);border-radius:2px;transition:width .3s}
+.progress-text{position:relative;z-index:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;visibility:hidden;transition:all .25s}
+.modal-overlay.active{opacity:1;visibility:visible}
+.modal{background:var(--bg-card);border-radius:var(--radius-lg);padding:28px;width:90%;max-width:460px;box-shadow:var(--shadow-lg);transform:translateY(20px);transition:transform .25s}
+.modal-overlay.active .modal{transform:translateY(0)}
+.modal h3{font-size:1.1rem;font-weight:700;margin-bottom:4px;color:var(--primary)}
+.modal .modal-subtitle{font-size:.85rem;color:var(--text-secondary);margin-bottom:16px}
+.modal .form-group{margin-bottom:16px}
+.radio-group{display:flex;flex-direction:column;gap:8px}
+.radio-option{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:var(--transition)}
+.radio-option:hover{border-color:var(--accent);background:#f7fafc}
+.radio-option.selected{border-color:var(--accent);background:#ebf8ff}
+.radio-option input[type=radio]{accent-color:var(--accent);width:16px;height:16px}
+.radio-option .radio-label{font-weight:600;font-size:.9rem}
+.radio-option .radio-desc{font-size:.75rem;color:var(--text-secondary)}
+.savings-preview{margin-top:16px;padding:14px;background:linear-gradient(135deg,var(--success-bg),#e6fffa);border-radius:var(--radius);border:1px solid #9ae6b4}
+.savings-preview h4{font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;color:var(--success);margin-bottom:8px}
+.savings-preview .savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.savings-preview .savings-val{font-size:.85rem}
+.savings-preview .savings-val strong{color:var(--success);font-size:1rem}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.modal-actions .btn-cancel{background:var(--bg);color:var(--text-secondary)}
+.modal-actions .btn-cancel:hover{background:var(--border)}
+.modal-actions .btn-apply{background:var(--accent);color:#fff;padding:10px 24px;font-weight:600}
+.modal-actions .btn-apply:hover{background:var(--accent-hover)}
+.modal-actions .btn-remove{background:var(--danger);color:#fff}
+.modal-actions .btn-remove:hover{background:#9b2c2c}
+.badge{display:inline-block;padding:2px 6px;border-radius:10px;font-size:.7rem;font-weight:600}
+.badge-cuota{background:#ebf8ff;color:var(--accent)}
+.badge-plazo{background:var(--success-bg);color:var(--success)}
+.total-row td{font-weight:700;background:#f7fafc;border-top:2px solid var(--primary)}
+footer{text-align:center;padding:16px;font-size:.75rem;color:var(--text-light)}
+@media(max-width:900px){
+  .main{grid-template-columns:1fr}
+  .summary-cards{grid-template-columns:repeat(2,1fr)}
+}
+@media print{
+  header,.sidebar,.btn-amort,.modal-overlay,footer{display:none!important}
+  .main{grid-template-columns:1fr!important}
+  .table-wrapper{box-shadow:none!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <h1>HipotecaSimulator</h1>
+    <span class="subtitle">Simulador de hipotecas &mdash; Sistema franc&eacute;s</span>
+  </header>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="panel">
+        <h3>Datos del pr&eacute;stamo</h3>
+        <div class="form-group">
+          <label>Importe a financiar</label>
+          <div class="input-suffix">
+            <input type="text" id="principal" value="150.000" inputmode="numeric" autocomplete="off">
+            <span>&euro;</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Fecha de inicio</label>
+          <div class="input-row">
+            <select id="startMonth"></select>
+            <input type="number" id="startYear" min="1900" max="3000" step="1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Plazo</label>
+          <div class="input-row">
+            <div class="input-suffix">
+              <input type="number" id="years" value="25" step="1" min="0" max="50">
+              <span>a&ntilde;os</span>
+            </div>
+            <div class="input-suffix">
+              <input type="number" id="months" value="0" step="1" min="0" max="11">
+              <span>meses</span>
+            </div>
+          </div>
+          <div style="font-size:.78rem;color:var(--text-secondary);margin-top:4px">Total: <strong id="totalMonths">300</strong> meses</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Tipo de inter&eacute;s</h3>
+        <div class="form-group">
+          <label>Tipo general (TIN anual)</label>
+          <div class="input-suffix">
+            <input type="number" id="baseRate" value="3.50" step="0.01" min="0" max="30">
+            <span>%</span>
+          </div>
+          <a href="https://www.euribordiario.es/" target="_blank" rel="noopener" style="display:inline-block;margin-top:4px;font-size:.75rem;color:var(--accent)">Consultar Eur&iacute;bor actual &rarr;</a>
+        </div>
+        <div class="form-group">
+          <label>Bonificaciones</label>
+          <div class="bonif-list" id="bonifList"></div>
+          <button class="btn-add-bonif" onclick="addBonification()">+ A&ntilde;adir bonificaci&oacute;n</button>
+        </div>
+        <div class="effective-rate">
+          <small>Tipo efectivo aplicado</small>
+          <span id="effectiveRate">3,50 %</span>
+        </div>
+      </div>
+
+      <div class="panel" style="padding:12px 20px">
+        <button class="btn-calculate" onclick="calculate()">Calcular hipoteca</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="resultsArea" style="display:none">
+        <div class="summary-cards" id="summaryCards"></div>
+        <div class="rate-breakdown" id="rateBreakdown"></div>
+        <div class="prepay-summary" id="prepayPanel" style="display:none">
+          <h4>Amortizaciones anticipadas programadas</h4>
+          <div class="prepay-list" id="prepayList"></div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>N&ordm;</th><th>Fecha</th><th>Cuota</th><th>Capital</th>
+                <th>Intereses</th><th>Amort. extra</th><th>Saldo pend.</th>
+                <th>% Pagado</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+            <tfoot id="scheduleFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+      <div id="noResults" class="no-results">
+        <div class="icon">&#127968;</div>
+        <p>Configura los datos de tu hipoteca y pulsa <strong>Calcular</strong></p>
+      </div>
+    </div>
+  </div>
+  <footer>HipotecaSimulator &mdash; Simulador de hipotecas con sistema de amortizaci&oacute;n franc&eacute;s</footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>Amortizaci&oacute;n anticipada</h3>
+    <div class="modal-subtitle" id="modalSubtitle"></div>
+    <div class="form-group">
+      <label>Importe a amortizar</label>
+      <div class="input-suffix">
+        <input type="number" id="prepayAmount" step="100" min="0" oninput="updateSavingsPreview()">
+        <span>&euro;</span>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-secondary);margin-top:3px">Saldo pendiente: <span id="modalBalance">-</span></div>
+    </div>
+    <div class="form-group">
+      <label>Tipo de amortizaci&oacute;n</label>
+      <div class="radio-group">
+        <label class="radio-option selected" id="optCuota" onclick="selectPrepayType('cuota')">
+          <input type="radio" name="prepayType" value="cuota" checked>
+          <div>
+            <div class="radio-label">Reducir cuota mensual</div>
+            <div class="radio-desc">Mantiene el plazo, reduce el pago mensual</div>
+          </div>
+        </label>
+        <label class="radio-option" id="optPlazo" onclick="selectPrepayType('plazo')">
+          <input type="radio" name="prepayType" value="plazo">
+          <div>
+            <div class="radio-label">Reducir plazo</div>
+            <div class="radio-desc">Mantiene la cuota, acorta la duraci&oacute;n</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="savings-preview" id="savingsPreview" style="display:none">
+      <h4>Previsi&oacute;n de ahorro</h4>
+      <div class="savings-grid" id="savingsGrid"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-remove" id="btnRemovePrepay" style="display:none" onclick="removePrepayment()">Eliminar</button>
+      <div style="flex:1"></div>
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-apply" onclick="applyPrepayment()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FMT = new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
+const FMT0 = new Intl.NumberFormat('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0});
+const DFMT = new Intl.DateTimeFormat('es-ES',{month:'short',year:'numeric'});
+const fmt = v => FMT.format(v);
+const fmt0 = v => FMT0.format(v);
+
+let state = {
+  bonifications: [
+    {name:'Domiciliación nómina', pct:0.20, active:true},
+    {name:'Seguro de hogar', pct:0.10, active:false},
+  ],
+  prepayments: [],
+  schedule: [],
+  calculated: false,
+};
+
+let _calcTimer;
+function autoCalc() {
+  updateTotalMonths();
+  updateEffectiveRate();
+  clearTimeout(_calcTimer);
+  _calcTimer = setTimeout(calculate, 250);
+}
+
+function init() {
+  const now = new Date();
+  const mSel = document.getElementById('startMonth');
+  const ySel = document.getElementById('startYear');
+  const mNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  mNames.forEach((n,i) => { const o = new Option(n, i); if (i===now.getMonth()) o.selected=true; mSel.add(o); });
+  document.getElementById('startYear').value = now.getFullYear();
+  renderBonifications();
+  updateEffectiveRate();
+  updateTotalMonths();
+  ['baseRate','years','months','startMonth','startYear'].forEach(id => {
+    document.getElementById(id).addEventListener('input', autoCalc);
+    document.getElementById(id).addEventListener('change', autoCalc);
+  });
+  const princ = document.getElementById('principal');
+  princ.addEventListener('input', autoCalc);
+  princ.addEventListener('blur', () => { princ.value = formatPrincipal(parsePrincipal(princ.value)); });
+  princ.addEventListener('focus', () => { const v = parsePrincipal(princ.value); if(v) princ.value = v; });
+  calculate();
+}
+
+function parsePrincipal(s) {
+  return parseFloat(String(s).replace(/\./g,'').replace(',','.')) || 0;
+}
+function formatPrincipal(n) {
+  if (!n || n <= 0) return '';
+  return FMT0.format(n);
+}
+
+function getStartDate() {
+  const m = parseInt(document.getElementById('startMonth').value);
+  const y = parseInt(document.getElementById('startYear').value);
+  return `${y}-${String(m+1).padStart(2,'0')}`;
+}
+
+function updateTotalMonths() {
+  const y = parseInt(document.getElementById('years').value)||0;
+  const m = parseInt(document.getElementById('months').value)||0;
+  document.getElementById('totalMonths').textContent = y*12+m;
+}
+
+function getEffectiveRate() {
+  const base = parseFloat(document.getElementById('baseRate').value)||0;
+  const discount = state.bonifications.filter(b=>b.active).reduce((s,b)=>s+b.pct, 0);
+  return Math.max(0, base - discount);
+}
+
+function updateEffectiveRate() {
+  const eff = getEffectiveRate();
+  document.getElementById('effectiveRate').textContent = fmt(eff) + ' %';
+}
+
+function renderBonifications() {
+  const list = document.getElementById('bonifList');
+  list.innerHTML = '';
+  state.bonifications.forEach((b,i) => {
+    const div = document.createElement('div');
+    div.className = 'bonif-item';
+    div.innerHTML = `
+      <input type="checkbox" ${b.active?'checked':''} onchange="toggleBonif(${i},this.checked)">
+      <input type="text" value="${b.name.replace(/"/g,'&quot;')}" oninput="renameBonif(${i},this.value)" placeholder="Nombre">
+      <div class="input-suffix">
+        <input type="number" value="${b.pct}" step="0.01" min="0" oninput="setBonifPct(${i},this.value)" style="width:60px">
+        <span>%</span>
+      </div>
+      <button class="bonif-del" onclick="removeBonif(${i})" title="Eliminar">&times;</button>`;
+    list.appendChild(div);
+  });
+  updateEffectiveRate();
+}
+
+function addBonification() {
+  state.bonifications.push({name:'', pct:0, active:true});
+  renderBonifications();
+}
+function removeBonif(i) { state.bonifications.splice(i,1); renderBonifications(); autoCalc(); }
+function toggleBonif(i,v) { state.bonifications[i].active=v; autoCalc(); }
+function renameBonif(i,v) { state.bonifications[i].name=v; if(state.calculated) autoCalc(); }
+function setBonifPct(i,v) { state.bonifications[i].pct=parseFloat(v)||0; autoCalc(); }
+
+function PMT(rate, nper, pv) {
+  if (nper <= 0 || pv <= 0) return 0;
+  if (rate === 0) return pv / nper;
+  const x = Math.pow(1+rate, nper);
+  return pv * rate * x / (x - 1);
+}
+
+function simulateInterest(balance, rate, pmt) {
+  if (pmt <= 0 || balance <= 0.01) return 0;
+  let total = 0, b = balance;
+  for (let i = 0; i < 1200 && b > 0.01; i++) {
+    const interest = b * rate;
+    const capital = Math.min(pmt - interest, b);
+    if (capital <= 0) break;
+    total += interest;
+    b -= capital;
+  }
+  return total;
+}
+
+function calcRemainingMonths(balance, rate, pmt) {
+  if (balance <= 0.01) return 0;
+  if (pmt <= 0) return 9999;
+  if (rate === 0) return Math.ceil(balance / pmt);
+  if (pmt <= balance * rate) return 9999;
+  return Math.ceil(Math.log(pmt / (pmt - balance * rate)) / Math.log(1+rate));
+}
+
+function generateSchedule(principal, annualRatePct, totalMonths, startDateStr, prepayments) {
+  const monthlyRate = annualRatePct / 100 / 12;
+  let balance = principal;
+  let currentPMT = PMT(monthlyRate, totalMonths, principal);
+  let remaining = totalMonths;
+  const schedule = [];
+  let cumInterest = 0, cumCapital = 0;
+  const sd = startDateStr.split('-');
+  const startYear = parseInt(sd[0]), startMonth = parseInt(sd[1])-1;
+
+  for (let month = 1; balance > 0.01 && month <= 1200; month++) {
+    const interest = balance * monthlyRate;
+    let capital = Math.min(currentPMT - interest, balance);
+    if (capital < 0) capital = 0;
+    const payment = capital + interest;
+    balance -= capital;
+    cumInterest += interest;
+    cumCapital += capital;
+
+    const balBeforeExtra = balance;
+    const pmtThisMonth = currentPMT;
+    const remAfterMonth = remaining - 1;
+
+    const prep = prepayments.find(p => p.month === month);
+    let extra = 0, savings = null;
+
+    if (prep && balance > 0.01) {
+      extra = Math.min(prep.amount, balance);
+      const intWithout = simulateInterest(balance, monthlyRate, currentPMT);
+      const newBal = balance - extra;
+
+      if (prep.type === 'cuota') {
+        const newPMT = (remaining-1 > 0 && newBal > 0.01) ? PMT(monthlyRate, remaining-1, newBal) : 0;
+        const intWith = simulateInterest(newBal, monthlyRate, newPMT);
+        savings = {
+          type:'cuota',
+          interestSaved: intWithout - intWith,
+          paymentReduction: currentPMT - newPMT,
+          monthsSaved: 0,
+          newPayment: newPMT
+        };
+        balance = newBal;
+        remaining--;
+        currentPMT = newPMT;
+      } else {
+        const oldRem = remaining - 1;
+        const newRem = calcRemainingMonths(newBal, monthlyRate, currentPMT);
+        const intWith = simulateInterest(newBal, monthlyRate, currentPMT);
+        savings = {
+          type:'plazo',
+          interestSaved: intWithout - intWith,
+          paymentReduction: 0,
+          monthsSaved: oldRem - newRem,
+          newPayment: currentPMT
+        };
+        balance = newBal;
+        remaining = newRem;
+      }
+      cumCapital += extra;
+    } else {
+      remaining--;
+    }
+
+    const d = new Date(startYear, startMonth + month - 1, 1);
+    schedule.push({
+      month, date:d, payment, capital, interest, extra,
+      balance: Math.max(0, balance),
+      pctPaid: ((principal - Math.max(0,balance)) / principal) * 100,
+      cumInterest, cumCapital, currentPMT, savings,
+      remaining: Math.max(0,remaining),
+      balBeforeExtra,
+      pmtThisMonth,
+      remAfterMonth: Math.max(0, remAfterMonth)
+    });
+    if (balance <= 0.01) break;
+  }
+  return schedule;
+}
+
+function calculate() {
+  const principal = parsePrincipal(document.getElementById('principal').value);
+  const totalM = (parseInt(document.getElementById('years').value)||0)*12 + (parseInt(document.getElementById('months').value)||0);
+  const startDate = getStartDate();
+  const effRate = getEffectiveRate();
+
+  if (principal <= 0 || totalM <= 0 || !startDate) {
+    document.getElementById('resultsArea').style.display = 'none';
+    document.getElementById('noResults').style.display = '';
+    state.calculated = false;
+    return;
+  }
+
+  state.prepayments = state.prepayments.filter(p => p.month <= totalM);
+  const validPrepays = state.prepayments.filter(p => p.amount > 0);
+  const schedule = generateSchedule(principal, effRate, totalM, startDate, validPrepays);
+  state.schedule = schedule;
+  state.calculated = true;
+  renderResults(principal, effRate, totalM, schedule);
+}
+
+function renderResults(principal, effRate, totalM, schedule) {
+  document.getElementById('noResults').style.display = 'none';
+  document.getElementById('resultsArea').style.display = '';
+
+  const lastRow = schedule[schedule.length-1];
+  const totalInterest = lastRow.cumInterest;
+  const totalPaid = lastRow.cumCapital + totalInterest;
+  const monthlyPayment = schedule[0].currentPMT;
+  const endDate = lastRow.date;
+  const totalExtra = schedule.reduce((s,r) => s+r.extra, 0);
+
+  const cards = document.getElementById('summaryCards');
+  cards.innerHTML = `
+    <div class="card highlight">
+      <div class="card-label">Cuota mensual</div>
+      <div class="card-value">${fmt(monthlyPayment)} &euro;</div>
+      <div class="card-sub">${schedule.length} pagos</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total a pagar</div>
+      <div class="card-value">${fmt0(totalPaid)} &euro;</div>
+      <div class="card-sub">Capital + intereses</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total intereses</div>
+      <div class="card-value">${fmt0(totalInterest)} &euro;</div>
+      <div class="card-sub">${(totalInterest/principal*100).toFixed(1)}% del capital</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Fin del pr&eacute;stamo</div>
+      <div class="card-value">${DFMT.format(endDate)}</div>
+      <div class="card-sub">${schedule.length} meses${totalExtra>0?' (con amort.)':''}</div>
+    </div>`;
+
+  const baseRate = parseFloat(document.getElementById('baseRate').value)||0;
+  const activeBonifs = state.bonifications.filter(b=>b.active);
+  let breakdown = `<span class="rate-tag base">General ${fmt(baseRate)}%</span>`;
+  activeBonifs.forEach(b => {
+    breakdown += `<span class="rate-tag bonif">&minus;${fmt(b.pct)}% ${b.name||'Sin nombre'}</span>`;
+  });
+  breakdown += `<span style="color:var(--text-secondary)">=</span><span class="rate-tag effective">${fmt(effRate)}% efectivo</span>`;
+  document.getElementById('rateBreakdown').innerHTML = breakdown;
+
+  renderPrepayPanel();
+  renderTable(schedule);
+}
+
+function renderPrepayPanel() {
+  const panel = document.getElementById('prepayPanel');
+  const list = document.getElementById('prepayList');
+  if (state.prepayments.length === 0) { panel.style.display='none'; return; }
+  panel.style.display='';
+  list.innerHTML='';
+  const sd = getStartDate().split('-');
+  const sy = parseInt(sd[0]), sm = parseInt(sd[1])-1;
+
+  state.prepayments.forEach((p,i) => {
+    const d = new Date(sy, sm+p.month-1, 1);
+    const row = state.schedule.find(r => r.month === p.month);
+    const savedInfo = row && row.savings
+      ? (row.savings.type==='cuota'
+        ? `Cuota &minus;${fmt(row.savings.paymentReduction)}&euro;/mes | Intereses ahorrados: ${fmt0(row.savings.interestSaved)}&euro;`
+        : `Plazo &minus;${row.savings.monthsSaved} meses | Intereses ahorrados: ${fmt0(row.savings.interestSaved)}&euro;`)
+      : 'Fuera del plazo actual';
+
+    const div = document.createElement('div');
+    div.className = 'prepay-item';
+    div.innerHTML = `
+      <div class="prepay-info">
+        <div><strong>Mes ${p.month}</strong> (${DFMT.format(d)}) &mdash; ${fmt(p.amount)} &euro;
+          <span class="badge badge-${p.type}">${p.type==='cuota'?'Reducir cuota':'Reducir plazo'}</span></div>
+        <div class="prepay-detail">${savedInfo}</div>
+      </div>
+      <div class="prepay-actions">
+        <button class="btn-edit" onclick="openModal(${p.month})">Editar</button>
+        <button class="btn-delete" onclick="deletePrepay(${i})">Quitar</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function deletePrepay(i) {
+  state.prepayments.splice(i,1);
+  calculate();
+}
+
+function renderTable(schedule) {
+  const body = document.getElementById('scheduleBody');
+  const foot = document.getElementById('scheduleFoot');
+  body.innerHTML = '';
+  let totalPayment=0, totalCapital=0, totalInterest=0, totalExtra=0;
+
+  schedule.forEach((r,idx) => {
+    totalPayment += r.payment + r.extra;
+    totalCapital += r.capital;
+    totalInterest += r.interest;
+    totalExtra += r.extra;
+
+    const isYearStart = r.date.getMonth() === 0 && idx > 0;
+    const tr = document.createElement('tr');
+    if (r.extra > 0) tr.classList.add('has-prepay');
+    if (isYearStart) tr.classList.add('year-start');
+
+    tr.innerHTML = `
+      <td>${r.month}</td>
+      <td>${DFMT.format(r.date)}</td>
+      <td>${fmt(r.payment)}</td>
+      <td>${fmt(r.capital)}</td>
+      <td>${fmt(r.interest)}</td>
+      <td>${r.extra > 0 ? fmt(r.extra) : ''}</td>
+      <td>${fmt(r.balance)}</td>
+      <td class="progress-cell">
+        <div class="progress-bar" style="width:${r.pctPaid}%"></div>
+        <span class="progress-text">${r.pctPaid.toFixed(1)}%</span>
+      </td>
+      <td><button class="btn-amort ${r.extra>0?'has':''}" onclick="openModal(${r.month})">${r.extra>0?'Editar':'+ Amort.'}</button></td>`;
+    body.appendChild(tr);
+
+    if (r.savings) {
+      const sr = document.createElement('tr');
+      sr.className = 'savings-row';
+      const info = r.savings.type === 'cuota'
+        ? `Cuota reducida: &minus;${fmt(r.savings.paymentReduction)} &euro;/mes &nbsp;|&nbsp; Intereses ahorrados: ${fmt(r.savings.interestSaved)} &euro;`
+        : `Plazo reducido: &minus;${r.savings.monthsSaved} meses &nbsp;|&nbsp; Intereses ahorrados: ${fmt(r.savings.interestSaved)} &euro;`;
+      sr.innerHTML = `<td colspan="9"><div class="savings-text">${info}</div></td>`;
+      body.appendChild(sr);
+    }
+  });
+
+  foot.innerHTML = `<tr class="total-row">
+    <td colspan="2">TOTAL</td>
+    <td>${fmt(totalPayment)}</td>
+    <td>${fmt(totalCapital)}</td>
+    <td>${fmt(totalInterest)}</td>
+    <td>${totalExtra>0?fmt(totalExtra):''}</td>
+    <td colspan="3"></td>
+  </tr>`;
+}
+
+let modalMonth = null;
+let modalBalance = 0, modalPMT = 0, modalRemaining = 0;
+
+function openModal(month) {
+  if (!state.calculated) return;
+  modalMonth = month;
+  const row = state.schedule.find(r => r.month === month);
+  if (!row) return;
+
+  modalBalance = row.balBeforeExtra;
+  modalPMT = row.pmtThisMonth;
+  modalRemaining = row.remAfterMonth;
+
+  const existing = state.prepayments.find(p => p.month === month);
+
+  document.getElementById('modalSubtitle').innerHTML =
+    `Mes ${month} &mdash; ${DFMT.format(row.date)}`;
+  document.getElementById('modalBalance').textContent = fmt(modalBalance) + ' €';
+  document.getElementById('prepayAmount').value = existing ? existing.amount : '';
+  document.getElementById('prepayAmount').max = modalBalance;
+  document.getElementById('btnRemovePrepay').style.display = existing ? '' : 'none';
+
+  selectPrepayType(existing ? existing.type : 'cuota');
+  document.getElementById('modalOverlay').classList.add('active');
+  document.getElementById('prepayAmount').focus();
+  updateSavingsPreview();
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+  modalMonth = null;
+}
+
+function selectPrepayType(type) {
+  document.getElementById('optCuota').classList.toggle('selected', type==='cuota');
+  document.getElementById('optPlazo').classList.toggle('selected', type==='plazo');
+  document.querySelector(`input[value="${type}"]`).checked = true;
+  updateSavingsPreview();
+}
+
+function updateSavingsPreview() {
+  const preview = document.getElementById('savingsPreview');
+  const grid = document.getElementById('savingsGrid');
+  const amount = parseFloat(document.getElementById('prepayAmount').value) || 0;
+  if (amount <= 0 || !modalMonth || modalBalance <= 0) { preview.style.display='none'; return; }
+  if (amount > modalBalance) { preview.style.display='none'; return; }
+
+  const monthlyRate = getEffectiveRate() / 100 / 12;
+  const type = document.querySelector('input[name=prepayType]:checked').value;
+  const intWithout = simulateInterest(modalBalance, monthlyRate, modalPMT);
+  const newBal = modalBalance - amount;
+
+  let html = '';
+  if (type === 'cuota') {
+    const rem = modalRemaining > 0 ? modalRemaining : 1;
+    const newPMT = newBal > 0.01 ? PMT(monthlyRate, rem, newBal) : 0;
+    const intWith = simulateInterest(newBal, monthlyRate, newPMT);
+    const reduction = modalPMT - newPMT;
+    const saved = intWithout - intWith;
+    html = `
+      <div class="savings-val">Nueva cuota: <strong>${fmt(newPMT)} &euro;</strong></div>
+      <div class="savings-val">Reducci&oacute;n: <strong>&minus;${fmt(reduction)} &euro;/mes</strong></div>
+      <div class="savings-val">Intereses ahorrados: <strong>${fmt(saved)} &euro;</strong></div>
+      <div class="savings-val">Plazo: <strong>sin cambios</strong></div>`;
+  } else {
+    const newRem = calcRemainingMonths(newBal, monthlyRate, modalPMT);
+    const intWith = simulateInterest(newBal, monthlyRate, modalPMT);
+    const saved = intWithout - intWith;
+    const mSaved = modalRemaining - newRem;
+    html = `
+      <div class="savings-val">Meses ahorrados: <strong>${mSaved} meses</strong></div>
+      <div class="savings-val">Intereses ahorrados: <strong>${fmt(saved)} &euro;</strong></div>
+      <div class="savings-val">Cuota: <strong>sin cambios</strong></div>
+      <div class="savings-val">Nuevo fin: <strong>${mSaved > 0 ? '&minus;'+mSaved+' meses' : 'igual'}</strong></div>`;
+  }
+  grid.innerHTML = html;
+  preview.style.display = '';
+}
+
+function applyPrepayment() {
+  const amount = parseFloat(document.getElementById('prepayAmount').value) || 0;
+  if (amount <= 0 || amount > modalBalance) return;
+  const type = document.querySelector('input[name=prepayType]:checked').value;
+  const existing = state.prepayments.findIndex(p => p.month === modalMonth);
+  if (existing >= 0) {
+    state.prepayments[existing] = {month:modalMonth, amount, type};
+  } else {
+    state.prepayments.push({month:modalMonth, amount, type});
+    state.prepayments.sort((a,b) => a.month - b.month);
+  }
+  closeModal();
+  calculate();
+}
+
+function removePrepayment() {
+  const idx = state.prepayments.findIndex(p => p.month === modalMonth);
+  if (idx >= 0) state.prepayments.splice(idx,1);
+  closeModal();
+  calculate();
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+init();
+</script>
+</body>
+</html>
